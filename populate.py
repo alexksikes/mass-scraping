@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # Author: Alex Ksikes (alex.ksikes@gmail.com)
 
 import extract 

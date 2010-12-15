@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # Author: Alex Ksikes (alex.ksikes@gmail.com)
 # Using code from pycurl retriever-multi.py example
 

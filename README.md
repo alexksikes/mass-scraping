@@ -55,6 +55,10 @@ For the sake of our IMDb example we run:
 
 	example/conf/ : the configuration files for extract.py.
 	example/tables/ : where to store the plain text tables.
+	
+Why regular expressions are used instead of well know packages such Beautiful Soup?
+
+Because these modules do not scale well to millions of data. Although less expressive regular expressions are much faster in practice.
 
 4. Populate
 -----------
