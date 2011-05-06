@@ -1,18 +1,18 @@
 Mass Scraping
 =============
 
-Mass Scraping is a module to quickly download and scrape websites on a massive scale. It has been successfully used to download and scrape web resources such as [PubMed](http://www.ncbi.nlm.nih.gov/pubmed) (20M documents) or [IMDb](http://www.imdb.com/) (1.2M documents). This module was first created to scrape information from the California's state licensing board of contractors in order to build [Chiefmall.com](http://www.chiefmall.com).
+Mass Scraping is a module to quickly and easily download and scrape websites on a massive scale. It has been successfully used to download and scrape web resources such as [PubMed](http://www.ncbi.nlm.nih.gov/pubmed) (20M documents) or [IMDb](http://www.imdb.com/) (1.2M documents). This module was first created to scrape information from the California's state licensing board of contractors in order to build [Chiefmall.com](http://www.chiefmall.com).
 
 The use of this module goes through four steps. First you generate a list of URLs. Second you use retrieve.py to massively download from the list of URLs. The raw data is stored and possibly compressed in a efficient directory structure called a repository. Third a program called extract.py is used to parse the information of interest from the files in a repository using configuration files. Configuration files are made of regular expressions, post transform callback functions and optionaly SQL type fields for populate.py program (see below for explanation). Fourth populate.py is used to populate the information into the database.
 
 A toy example illustrating all steps is provided in the example/ directory. The process is applied in order to scrape all movie information from IMDb.
 
-1. Generate URLs
+1) Generate URLs
 ----------------
 
 The first thing you need to do is look for patterns in the URLs. For example in IMDb, URLs are generated as www.imdb.com/title/tt{title_id}. A scripts could be written to list all the URLs of interest. In the example directory we only have 10 URLs from IMDb in example/urls/urls.
 
-2. Retrieve
+2) Retrieve
 -----------
 
 Next you use the program retrieve.py to masively download all the data from your list URLs. With retrieve you can control the number of parallel threads, sleep after x number of seconds or shuffe the list of urls. The data may be stored in an efficient directory structure called a repository. 
@@ -26,7 +26,7 @@ For the sake of our IMDb example we run:
 	example/data : flat repository without comnpression.
 	example/urls/urls : list of URLs to download.
 
-3. Extract
+3) Extract
 ----------
 
 Next you need to create configuration files for extract.py. A configuration file is composed of a list of fields starting with the symbol "@". Each field has a regular expression and a possible post processing callback function. Additionally each field could have an SQL type statement to specify how the results will be populated when using populate.py (see below). 
@@ -60,7 +60,7 @@ Why regular expressions are used instead of well know packages such Beautiful So
 
 Because these modules do not scale well to millions of data. Although less expressive regular expressions are much faster in practice.
 
-4. Populate
+4) Populate
 -----------
 
 The program extract.py puts the results into a plain text table which then could be populated to the database using populate.py. The program populate.py takes these plain text tables together with the configuration files and populate each field them into a database.
