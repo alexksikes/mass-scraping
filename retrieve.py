@@ -8,16 +8,15 @@
 # - from file so no need to reread each time
 # - with repeat all urls with problems are put at the end not sure it's the right approach
 # - don't save empty files (the ones that errored)
-# - when they are duplicate urls spread_files.py will break
+# - when they are duplicate urls repository.py will break
 # - in compress mode we had to close the directory
 # >> alternatively we could catch ctrl-break and then close the repository
 
-import md5
+import hashlib
 import os
-import pycurl 
-import random 
-import sets
-import spread_files 
+import pycurl
+import random
+import repository
 
 class Retriever:
     def __init__(self, conn, cookie_path=''):
@@ -33,20 +32,20 @@ class Retriever:
             c.setopt(pycurl.NOSIGNAL, 1)
             #c.setopt(pycurl.USERAGENT, 'Googlebot/2.1 (+http://www.google.com/bot.html)')
             c.setopt(pycurl.USERAGENT, 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)')
-            
+
             if cookie_path:
                 c.setopt(pycurl.COOKIEFILE, cookie_path)
                 c.setopt(pycurl.COOKIEJAR, cookie_path)
             self.m.handles.append(c)
-        
+
     def __init_urls(self, urls, shuffle=False, resume=[], no_duplicates=False, no_rename=False):
         if no_duplicates:
-            urls = sets.Set(urls)
+            urls = set(urls)
             urls = list(urls)
         if shuffle:
             random.shuffle(urls)
         if resume:
-            resume = sets.Set(resume)
+            resume = set(resume)
         self.queue = []
         for url in urls:
             if url in resume:
@@ -54,10 +53,10 @@ class Retriever:
             if no_rename:
                 filename = url.split('/')[-1]
             else:
-                filename = md5.new(url).hexdigest()
+                filename = hashlib.md5(url).hexdigest()
             self.queue.append((url, filename))
         self.num_urls = len(self.queue)
-        
+
     def __read(self, f):
         # handle the repeat part as well
         urls = []
@@ -67,11 +66,11 @@ class Retriever:
                 continue
             urls.append(url)
         return urls
-            
+
     def __run(self, out_folder='.', min_size=0, repeat=False, store=False, compress=False):
         self.store = store
         if store:
-            self.repository = spread_files.Repository(root=out_folder, levels=store, compress=compress)
+            self.repository = repository.Repository(root=out_folder, levels=store, compress=compress)
         if repeat:
             self.repeat = repeat
             self.repeat_list = {}
@@ -82,7 +81,7 @@ class Retriever:
             while self.queue and freelist:
                 url, filename = self.queue.pop(0)
                 c = freelist.pop()
-                #c.fp = spread_files.RepositoryFile(os.path.join(out_folder, filename), self.repository)
+                #c.fp = repository.RepositoryFile(os.path.join(out_folder, filename), self.repository)
                 c.fp = open(os.path.join(out_folder, filename), "wb")
                 c.setopt(pycurl.URL, url)
                 c.setopt(pycurl.WRITEDATA, c.fp)
@@ -131,7 +130,7 @@ class Retriever:
             # (display a progress bar, etc.).
             # We just call select() to sleep until some more data is available.
             self.m.select(1.0)
-    
+
     def __handle_repeat(self, url, filename, failed=True):
         count = self.repeat_list.get(url, 0)
         if failed:
@@ -140,8 +139,8 @@ class Retriever:
                 self.num_urls += 1
             self.repeat_list[url] = count + 1
         return count
-            
-    def __clean_up(self):    
+
+    def __clean_up(self):
         for c in self.m.handles:
             if c.fp is not None:
                 c.fp.close()
@@ -151,7 +150,7 @@ class Retriever:
         # make sure we close the repository in compress mode
         if self.store:
             self.repository.close()
-        
+
     def dnl(self, urls, out_folder, shuffle, min_size, resume, repeat, store, compress, no_duplicates, no_rename):
         if isinstance(urls, str):
             urls = self.__read(urls)
@@ -161,24 +160,24 @@ class Retriever:
         self.__run(out_folder, min_size, repeat, store, compress)
         self.__clean_up()
 
-def dnl(urls, conn=10, out_folder='.', 
+def dnl(urls, conn=10, out_folder='.',
         shuffle=False, min_size=0, resume=[],
         repeat=False, store=False, compress=False,
         no_duplicates=False, no_rename=False, cookie_path=''):
     Retriever(conn, cookie_path=cookie_path).dnl(urls, out_folder, shuffle, min_size, resume, repeat, store, compress, no_duplicates, no_rename)
 
 def usage():
-    print "Usage:" 
-    print "    python retriever.py [options] <list_of_urls>"
+    print "Usage:"
+    print "    python retrieve.py [options] <list_of_urls>"
     print
-    print "Description:" 
+    print "Description:"
     print "    Mass download a list of urls using various options."
     print
     print "    The list of urls is either a file (one line per  url)"
     print "    or comma separated from the command line"
     print "    or taken from stdin if set to '-'."
     print
-    print "Options:" 
+    print "Options:"
     print "    -c, --conn <num_conn>              : number of concurrent connections"
     print "    -o, --out-folder <folder>          : folder to store the retrieved files"
     print "    -s, --shuffle                      : shuffle the list of urls first"
@@ -194,26 +193,26 @@ def usage():
     print "    -k, --use_cookie <path>            : use existing cookie file"
     print "    -h, --help                         : this help message"
     print
-    print "Email bugs/suggestions to Alex Ksikes (alex.ksikes@gmail.com)" 
-    
+    print "Email bugs/suggestions to Alex Ksikes (alex.ksikes@gmail.com)"
+
 import sys, getopt, cStringIO
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "c:o:sm:l:r:p:t:zdnk:h", 
-                        ["conn=", "out-folder=", "shuffle=", "min-file-size=", 
-                         "sleep=", "resume=", "repeat=", "store=", "compress", 
+        opts, args = getopt.getopt(sys.argv[1:], "c:o:sm:l:r:p:t:zdnk:h",
+                        ["conn=", "out-folder=", "shuffle=", "min-file-size=",
+                         "sleep=", "resume=", "repeat=", "store=", "compress",
                          "no-duplicates", "no-rename", "use_cookie=", "help"])
     except getopt.GetoptError:
         usage(); sys.exit(2)
-    
+
     conn, out_folder, min_size, resume = 10, '.', 0, []
     shuffle = sleep = repeat = store = compress = no_duplicates = no_rename = False
     cookie_path = ''
     for o, a in opts:
         if o  in ("-c", "--conn"):
-            conn = int(a)  
+            conn = int(a)
         elif o  in ("-o", "--out-folder"):
-            out_folder = a  
+            out_folder = a
         elif o  in ("-s", "--shuffle"):
             shuffle = True
         elif o  in ("-m", "--min-file-size"):
@@ -245,11 +244,11 @@ def main():
             urls = cStringIO.StringIO(sys.stdin.read())
         elif ',' in urls or urls.startswith('http://'):
             urls = urls.split(',')
-        dnl(urls, conn=conn, out_folder=out_folder, 
+        dnl(urls, conn=conn, out_folder=out_folder,
             shuffle=shuffle, min_size=min_size, resume=resume,
-            repeat=repeat, store=store, compress=compress, 
-            no_duplicates=no_duplicates, no_rename=no_rename, 
+            repeat=repeat, store=store, compress=compress,
+            no_duplicates=no_duplicates, no_rename=no_rename,
             cookie_path=cookie_path)
-      
+
 if __name__ == '__main__':
     main()
